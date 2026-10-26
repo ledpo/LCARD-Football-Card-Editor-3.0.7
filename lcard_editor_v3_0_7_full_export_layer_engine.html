@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LCard Editor v3.0.7 - Full Export & Layer Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Audiowide&family=Bebas+Neue&family=Cinzel:wght@700&family=Montserrat:wght@800;900&family=Orbitron:wght@700;900&family=Press+Start+2P&family=Russo+One&family=Teko:wght@700&display=swap" rel="stylesheet">
+  <!-- Gifshot library for client-side GIF rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
+  <style>
+    :root {
+      --bg: #090d16;
+      --panel-bg: #151d2a;
+      --panel-border: #2a374e;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --text: #f8fafc;
+      --text-dim: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+
+    header {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--panel-border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-group { display: flex; align-items: center; gap: 12px; }
+    .logo-badge { background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 6px 14px; border-radius: 8px; font-weight: 900; font-size: 18px; color: #fff; }
+    .title-wrap h1 { font-size: 18px; font-weight: 900; background: linear-gradient(90deg, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .title-wrap p { font-size: 12px; color: #38bdf8; font-weight: 700; }
+    .version-tag { background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5); color: #60a5fa; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; }
+
+    .main-layout { display: grid; grid-template-columns: 390px 1fr 390px; gap: 20px; padding: 20px; flex: 1; max-width: 1750px; margin: 0 auto; width: 100%; }
+
+    @media (max-width: 1300px) {
+      .main-layout { grid-template-columns: 1fr; }
+    }
+
+    .panel { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 14px; padding: 18px; overflow-y: auto; max-height: calc(100vh - 110px); }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: #38bdf8; margin-bottom: 12px; border-bottom: 1px solid var(--panel-border); padding-bottom: 6px; margin-top: 12px; }
+
+    .control-group { margin-bottom: 12px; }
+    .control-group label { display: block; font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 5px; text-transform: uppercase; }
+    input[type="text"], input[type="number"], select { width: 100%; background: #0b111e; border: 1px solid var(--panel-border); color: #fff; padding: 9px 12px; border-radius: 7px; font-size: 13px; outline: none; }
+    input[type="text"]:focus, select:focus { border-color: var(--accent); }
+
+    .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 12px; color: #f8fafc; font-weight: 700; margin-bottom: 10px; }
+    .checkbox-label input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+    .file-btn-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+    .file-btn { background: #1e293b; color: #fff; border: 1px dashed #475569; padding: 9px; border-radius: 7px; text-align: center; font-size: 12px; cursor: pointer; display: block; font-weight: 600; }
+    .file-btn:hover { background: #334155; border-color: var(--accent); }
+    .file-btn-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+
+    input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+    .preview-area { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .canvas-container { position: relative; box-shadow: 0 25px 60px rgba(0,0,0,0.9); border-radius: 18px; overflow: hidden; cursor: grab; background: #04070d; border: 2px solid #1e293b; }
+    .canvas-container:active { cursor: grabbing; }
+    canvas { display: block; }
+
+    .canvas-hint { margin-top: 12px; font-size: 12px; color: var(--text-dim); text-align: center; font-weight: 600; }
+
+    .btn-apply { width: 100%; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 800; font-size: 13px; cursor: pointer; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .btn-apply:hover { background: linear-gradient(135deg, #16a34a, #15803d); }
+
+    .btn-action { width: 100%; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 14px; border-radius: 9px; font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.2s; margin-top: 12px; }
+    .btn-action:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+
+    .recording-badge { display: none; background: #ef4444; color: white; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 800; margin-top: 10px; animation: pulse 1s infinite alternate; }
+    @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 14px; width: 90%; max-width: 520px; padding: 24px; text-align: center; }
+    .modal h3 { font-size: 18px; margin-bottom: 16px; color: #fff; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .modal-btn { background: #0b111e; border: 1px solid var(--panel-border); color: #fff; padding: 14px; border-radius: 9px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .modal-btn:hover { border-color: var(--accent); background: #1e293b; color: #38bdf8; }
+    .modal-btn.highlight { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+    .modal-btn.highlight:hover { background: rgba(34, 197, 94, 0.25); color: #4ade80; }
+    .modal-btn span { font-size: 11px; opacity: 0.75; font-weight: 500; }
+
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 700; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 2000; display: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-group">
+      <div class="logo-badge">LC</div>
+      <div class="title-wrap">
+        <h1>LCard Editor</h1>
+        <p>sinbo bello studios yaptı</p>
+      </div>
+    </div>
+    <div class="version-tag">v3.0.7 - GIF Engine</div>
+  </header>
+
+  <main class="main-layout">
+    
+    <!-- SOL PANEL -->
+    <div class="panel">
+      <h2>👤 Oyuncu & Metinler</h2>
+
+      <div class="control-group">
+        <label>Oyuncu Adı</label>
+        <input type="text" id="inputName" value="ARDA GÜLER">
+      </div>
+
+      <div class="row-2">
+        <div class="control-group">
+          <label>Taban OVR (Ör: 100)</label>
+          <input type="number" id="inputOvr" value="100">
+        </div>
+        <div class="control-group">
+          <label>Mevki (POS)</label>
+          <input type="text" id="inputPos" value="AMF">
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="control-group">
+          <label>Özel Kart Türü İsmi</label>
+          <input type="text" id="inputCardType" value="BIG TIME">
+        </div>
+        <div class="control-group">
+          <label>Üst Banner Stili</label>
+          <select id="selectBannerStyle">
+            <option value="rgb" selected>🌈 Canlı RGB (Gökkuşağı)</option>
+            <option value="dark">⬛ Koyu Klasik (Siyah/Mavi)</option>
+            <option value="gold">🪙 Altın Işıltı (Gold Glow)</option>
+            <option value="cyan">⚡ Neon Mavi (Cyan Scan)</option>
+            <option value="purple">🔮 Mor Epik (Purple Glow)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Yıldız Sayısı (1 - 8 Yıldız)</label>
+        <select id="selectStars">
+          <option value="1">1 Yıldız</option>
+          <option value="2">2 Yıldız</option>
+          <option value="3">3 Yıldız</option>
+          <option value="4">4 Yıldız</option>
+          <option value="5" selected>5 Yıldız</option>
+          <option value="6">6 Yıldız</option>
+          <option value="7">7 Yıldız</option>
+          <option value="8">8 Yıldız</option>
+        </select>
+      </div>
+
+      <h2>⚡ Güçlendirici (Booster) Mantığı</h2>
+      <div class="control-group">
+        <label>Güçlendirici Değeri</label>
+        <select id="selectBoostVal">
+          <option value="0">Güçlendirici Yok (+0)</option>
+          <option value="1">+1 Boost (100 ➔ 101 Yeşil)</option>
+          <option value="2" selected>+2 Boost (100 ➔ 101 Yeşil ➔ 102 Mor)</option>
+          <option value="3">+3 Boost (100 ➔ 101 Yeşil ➔ 102 Mor ➔ 103 RGB)</option>
+        </select>
+      </div>
+
+      <h2>🎯 Öğe Konum ve Boyut Düzenleyici</h2>
+      <div class="control-group">
+        <label>Düzenlenecek Parça / Katman</label>
+        <select id="selectTargetLayer">
+          <option value="player" selected>👤 Oyuncu Fotoğrafı</option>
+          <option value="name">🏷️ Oyuncu Adı Yazısı</option>
+          <option value="ovr">📊 OVR & Mevki Metni</option>
+          <option value="banner">👑 Üst Banner Yazısı</option>
+          <option value="booster">💎 Booster Rozetleri</option>
+          <option value="club">🛡️ Takım Logosu</option>
+          <option value="flag">🏳️ Ülke Bayrağı</option>
+          <option value="stars">⭐ Yıldızlar</option>
+          <option value="stats">📈 Stat Kutusu</option>
+        </select>
+      </div>
+
+      <div class="row-2">
+        <div class="control-group">
+          <label>Yatay Konum (X)</label>
+          <input type="range" id="layerX" min="0" max="500" value="250">
+        </div>
+        <div class="control-group">
+          <label>Dikey Konum (Y)</label>
+          <input type="range" id="layerY" min="0" max="720" value="350">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Ölçek / Büyüklük (Scale)</label>
+        <input type="range" id="layerScale" min="0.3" max="3" step="0.05" value="1.1">
+      </div>
+
+      <h2>🎨 Font & Yazı Tipi</h2>
+      <div class="control-group">
+        <label>Yazı Tipi (Font)</label>
+        <select id="selectFont">
+          <option value="Orbitron" selected>Orbitron (Futuristic)</option>
+          <option value="Montserrat">Montserrat (Standard)</option>
+          <option value="Bebas Neue">Bebas Neue (Tall)</option>
+          <option value="Anton">Anton (Bold)</option>
+          <option value="Russo One">Russo One (Cyber)</option>
+          <option value="Teko">Teko (Condensed)</option>
+          <option value="Audiowide">Audiowide (Tech)</option>
+        </select>
+      </div>
+
+      <h2>📊 Statlar</h2>
+      <label class="checkbox-label">
+        <input type="checkbox" id="toggleStats" checked>
+        Statları Kartta Göster
+      </label>
+
+      <div id="statsBox" class="row-3">
+        <div class="control-group"><label>PAS</label><input type="text" id="st1" value="95"></div>
+        <div class="control-group"><label>ŞUT</label><input type="text" id="st2" value="98"></div>
+        <div class="control-group"><label>DRİ</label><input type="text" id="st3" value="99"></div>
+        <div class="control-group"><label>HIZ</label><input type="text" id="st4" value="92"></div>
+        <div class="control-group"><label>DEF</label><input type="text" id="st5" value="48"></div>
+        <div class="control-group"><label>FİZ</label><input type="text" id="st6" value="82"></div>
+      </div>
+
+      <button class="btn-apply" id="btnApplyLeft">✔ TÜM DEĞİŞİKLİKLERİ UYGULA</button>
+    </div>
+
+    <!-- ORTA PANEL -->
+    <div class="preview-area">
+      <div class="canvas-container">
+        <canvas id="cardCanvas" width="500" height="720"></canvas>
+      </div>
+      <div class="recording-badge" id="recBadge">🔴 CANLI ANİMASYONLU GIF OLUŞTURULUYOR... (LÜTFEN BEKLEYİN)</div>
+      <p class="canvas-hint">💡 Seçilen parçayı fareyle kart üstünde sürükleyip boyutlandırabilirsiniz.</p>
+      <button class="btn-action" id="btnOpenExport">📥 İNDİRME / AKTARMA SEÇENEKLERİ (GIF, PNG, JPG)</button>
+    </div>
+
+    <!-- SAĞ PANEL -->
+    <div class="panel">
+      <h2>🖼️ Görseller & Resimler</h2>
+
+      <div class="control-group">
+        <label>Oyuncu Fotoğrafı Yükle</label>
+        <div class="file-btn-wrapper">
+          <span class="file-btn">📁 Oyuncu Resimi Seç (PNG/JPG)</span>
+          <input type="file" id="filePlayer" accept="image/*">
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="control-group">
+          <label>Foto Şeffaflık</label>
+          <input type="range" id="playerOpacity" min="0.1" max="1" step="0.05" value="1">
+        </div>
+        <div class="control-group">
+          <label>Foto Parlaklık</label>
+          <input type="range" id="playerBrightness" min="0.3" max="1.5" step="0.05" value="1">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Özel Arka Plan Yükle</label>
+        <div class="file-btn-wrapper">
+          <span class="file-btn">🌌 Arka Plan Yükle</span>
+          <input type="file" id="fileBg" accept="image/*">
+        </div>
+      </div>
+
+      <h2>🏳️ Ülkeler & Takım</h2>
+      <div class="control-group">
+        <label>Hazır Ülke Bayrağı Seç</label>
+        <select id="selectCountryFlag">
+          <option value="tr" selected>🇹🇷 Türkiye</option>
+          <option value="ar">🇦🇷 Arjantin</option>
+          <option value="pt">🇵🇹 Portekiz</option>
+          <option value="br">🇧🇷 Brezilya</option>
+          <option value="fr">🇫🇷 Fransa</option>
+          <option value="gb-eng">🏴󠁧󠁢󠁥󠁮󠁧󠁿 İngiltere</option>
+          <option value="es">🇪🇸 İspanya</option>
+          <option value="de">🇩🇪 Almanya</option>
+          <option value="it">🇮🇹 İtalya</option>
+          <option value="nl">🇳🇱 Hollanda</option>
+          <option value="be">🇧🇪 Belçika</option>
+          <option value="hr">🇭🇷 Hırvatistan</option>
+          <option value="uy">🇺🇾 Urugay</option>
+          <option value="jp">🇯🇵 Japonya</option>
+          <option value="kr">🇰🇷 Güney Kore</option>
+          <option value="ma">🇲🇦 Fas</option>
+          <option value="sen">🇸🇳 Senegal</option>
+          <option value="ng">🇳🇬 Nijerya</option>
+          <option value="us">🇺🇸 ABD</option>
+        </select>
+      </div>
+
+      <div class="row-2">
+        <div class="control-group">
+          <label>Özel Bayrak Yükle</label>
+          <div class="file-btn-wrapper">
+            <span class="file-btn">🏳️ Bayrak Yükle</span>
+            <input type="file" id="fileFlag" accept="image/*">
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Takım Logosu</label>
+          <div class="file-btn-wrapper">
+            <span class="file-btn">🛡️ Logo Yükle</span>
+            <input type="file" id="fileClub" accept="image/*">
+          </div>
+        </div>
+      </div>
+
+      <h2>🎨 eFootball Kart Temaları</h2>
+      <div class="control-group">
+        <label>Kart Tasarım Teması</label>
+        <select id="selectTheme">
+          <option value="bigtime" selected>Big Time (Crimson Red)</option>
+          <option value="showtime">Showtime (Neon Cyan)</option>
+          <option value="rare_bigtime">Rare Big Time (Deep Violet Glow)</option>
+          <option value="potw">POTW (Green Field Accent)</option>
+          <option value="epic">Epic Gold Theme</option>
+          <option value="rainbow">Animated Rainbow RGB</option>
+          <option value="custom">Özel Yüklenen Arka Plan</option>
+        </select>
+      </div>
+
+      <h2>✨ Canlı Efektler (RGB & Yıldızlar)</h2>
+      <div class="control-group">
+        <label>Animasyon Efekti</label>
+        <select id="selectEffect">
+          <option value="round_stars" selected>🌟 Yuvarlak Yıldızlar (Star Spheres)</option>
+          <option value="rgb_starburst">💥 RGB Yıldız Patlaması (Star Burst)</option>
+          <option value="rgb_scan">🌈 Canlı RGB Neon Taraması</option>
+          <option value="sakura">🌸 Sakura Yaprakları</option>
+          <option value="matrix">💻 Matrix Kod Yağmuru</option>
+          <option value="stars">✨ Uzay & Yıldızlar</option>
+          <option value="lightning">⚡ Elektrik / Şimşek</option>
+          <option value="fire">🔥 Volkanik Kıvılcımlar</option>
+          <option value="gold">🪙 Altın Tozu Yağmuru</option>
+          <option value="snow">❄️ Kar Yağmuru</option>
+          <option value="bubbles">🫧 Yükselen Baloncuklar</option>
+          <option value="none">Efekt Yok</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Efekt Hızı</label>
+        <input type="range" id="effectSpeed" min="1" max="5" value="2">
+      </div>
+
+      <button class="btn-apply" id="btnApplyRight">✔ GÖRSELLERİ UYGULA</button>
+    </div>
+
+  </main>
+
+  <!-- Export Modal -->
+  <div class="modal-overlay" id="exportModal">
+    <div class="modal">
+      <h3>İndirme ve Dışa Aktarma Formatı</h3>
+      <div class="modal-grid">
+        <button class="modal-btn highlight" id="btnDownloadGIF">
+          🎬 Animasyonlu GIF İndir
+          <span>🌐 Google Sites için Tam Uyumlu!</span>
+        </button>
+        <button class="modal-btn" id="btnDownloadPNG">
+          🖼️ High-Res PNG
+          <span>Yüksek Kalite Standart Resim</span>
+        </button>
+        <button class="modal-btn" id="btnDownloadJPG">
+          📸 High-Res JPG
+          <span>Sıkıştırılmış Resim Formatı</span>
+        </button>
+        <button class="modal-btn" id="btnDownloadWEBM">
+          📹 WebM Video Kaydı
+          <span>5 Saniyelik Efektli Video Kaydı</span>
+        </button>
+      </div>
+      <button class="btn-action" style="background:#334155;" onclick="document.getElementById('exportModal').classList.remove('active')">Kapat</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toastMsg">İndirme Başlatıldı!</div>
+
+  <script>
+    const canvas = document.getElementById('cardCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let state = {
+      name: 'ARDA GÜLER',
+      ovr: 100,
+      pos: 'AMF',
+      cardType: 'BIG TIME',
+      bannerStyle: 'rgb',
+      stars: 5,
+      boostVal: 2,
+      showStats: true,
+      stats: ['95', '98', '99', '92', '48', '82'],
+      font: 'Orbitron',
+      textColor: '#ffffff',
+      theme: 'bigtime',
+      effect: 'round_stars',
+      speed: 2,
+      playerOpacity: 1,
+      playerBrightness: 1
+    };
+
+    let layers = {
+      player: { x: 250, y: 350, scale: 1.1 },
+      name: { x: 250, y: 568, scale: 1 },
+      ovr: { x: 35, y: 120, scale: 1 },
+      banner: { x: 250, y: 51, scale: 1 },
+      booster: { x: 410, y: 200, scale: 1 },
+      club: { x: 390, y: 85, scale: 1 },
+      flag: { x: 390, y: 140, scale: 1 },
+      stars: { x: 37, y: 180, scale: 1 },
+      stats: { x: 60, y: 615, scale: 1 }
+    };
+
+    let activeLayerKey = 'player';
+
+    let playerImg = new Image();
+    let bgImg = null;
+    let clubImg = null;
+    let flagImg = new Image();
+
+    playerImg.crossOrigin = 'anonymous';
+    flagImg.crossOrigin = 'anonymous';
+    playerImg.src = 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=500&auto=format&fit=crop&q=80';
+    flagImg.src = 'https://flagcdn.com/w80/tr.png';
+
+    let particles = [];
+    function initParticles() {
+      particles = [];
+      for (let i = 0; i < 65; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 3,
+          vy: (1 + Math.random() * 2) * state.speed,
+          size: 3 + Math.random() * 7,
+          angle: Math.random() * Math.PI * 2,
+          hue: Math.random() * 360,
+          char: String.fromCharCode(0x30A0 + Math.random() * 96)
+        });
+      }
+    }
+    initParticles();
+
+    document.getElementById('selectTargetLayer').addEventListener('change', e => {
+      activeLayerKey = e.target.value;
+      let layer = layers[activeLayerKey];
+      document.getElementById('layerX').value = layer.x;
+      document.getElementById('layerY').value = layer.y;
+      document.getElementById('layerScale').value = layer.scale || 1;
+    });
+
+    document.getElementById('layerX').addEventListener('input', e => layers[activeLayerKey].x = parseFloat(e.target.value));
+    document.getElementById('layerY').addEventListener('input', e => layers[activeLayerKey].y = parseFloat(e.target.value));
+    document.getElementById('layerScale').addEventListener('input', e => layers[activeLayerKey].scale = parseFloat(e.target.value));
+
+    function applyAllSettings() {
+      state.name = document.getElementById('inputName').value.toUpperCase();
+      state.ovr = parseInt(document.getElementById('inputOvr').value) || 100;
+      state.pos = document.getElementById('inputPos').value.toUpperCase();
+      state.cardType = document.getElementById('inputCardType').value.toUpperCase();
+      state.bannerStyle = document.getElementById('selectBannerStyle').value;
+      state.stars = parseInt(document.getElementById('selectStars').value);
+      state.boostVal = parseInt(document.getElementById('selectBoostVal').value);
+      state.font = document.getElementById('selectFont').value;
+      state.theme = document.getElementById('selectTheme').value;
+      state.effect = document.getElementById('selectEffect').value;
+      state.speed = parseFloat(document.getElementById('effectSpeed').value);
+
+      state.playerOpacity = parseFloat(document.getElementById('playerOpacity').value);
+      state.playerBrightness = parseFloat(document.getElementById('playerBrightness').value);
+
+      for (let i = 1; i <= 6; i++) {
+        state.stats[i - 1] = document.getElementById(`st${i}`).value;
+      }
+
+      initParticles();
+      showToast('Tüm Değişiklikler Uygulandı!');
+    }
+
+    document.getElementById('btnApplyLeft').addEventListener('click', applyAllSettings);
+    document.getElementById('btnApplyRight').addEventListener('click', applyAllSettings);
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawTheme();
+
+      if (playerImg.complete && playerImg.naturalWidth > 0) {
+        ctx.save();
+        ctx.globalAlpha = state.playerOpacity;
+        ctx.filter = `brightness(${state.playerBrightness})`;
+        let p = layers.player;
+        let w = 340 * p.scale;
+        let h = 440 * p.scale;
+        ctx.drawImage(playerImg, p.x - w / 2, p.y - h / 2, w, h);
+        ctx.restore();
+      }
+
+      drawFrame();
+      drawDetails();
+      drawEffects();
+
+      requestAnimationFrame(render);
+    }
+
+    function drawTheme() {
+      ctx.save();
+      let t = state.theme;
+
+      if (t === 'custom' && bgImg) {
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      } else if (t === 'bigtime') {
+        let grad = ctx.createRadialGradient(250, 250, 20, 250, 360, 420);
+        grad.addColorStop(0, '#dc2626');
+        grad.addColorStop(0.5, '#7f1d1d');
+        grad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else if (t === 'showtime') {
+        let grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        grad.addColorStop(0, '#0284c7');
+        grad.addColorStop(0.5, '#0f172a');
+        grad.addColorStop(1, '#06b6d4');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else if (t === 'rare_bigtime') {
+        let grad = ctx.createRadialGradient(250, 250, 20, 250, 360, 420);
+        grad.addColorStop(0, '#9333ea');
+        grad.addColorStop(0.6, '#581c87');
+        grad.addColorStop(1, '#090d16');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else if (t === 'potw') {
+        let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, '#15803d');
+        grad.addColorStop(0.6, '#064e3b');
+        grad.addColorStop(1, '#022c22');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else if (t === 'epic') {
+        let grad = ctx.createRadialGradient(250, 200, 10, 250, 360, 400);
+        grad.addColorStop(0, '#f59e0b');
+        grad.addColorStop(0.4, '#78350f');
+        grad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else if (t === 'rainbow') {
+        let time = Date.now() * 0.001;
+        let grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        grad.addColorStop(0, `hsl(${Math.sin(time)*360}, 80%, 30%)`);
+        grad.addColorStop(1, `hsl(${Math.cos(time)*360}, 80%, 15%)`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      ctx.restore();
+    }
+
+    function drawFrame() {
+      ctx.save();
+      ctx.strokeStyle = state.theme === 'rainbow' ? '#00f0ff' : 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 10;
+      ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+      ctx.fillStyle = '#ffea00';
+      ctx.font = '900 20px Montserrat';
+      ctx.fillText('LC', 30, 45);
+
+      let bp = layers.banner;
+      let time = Date.now() * 0.003;
+      let bannerGrad = ctx.createLinearGradient(bp.x - 170, 0, bp.x + 170, 0);
+
+      if (state.bannerStyle === 'rgb') {
+        bannerGrad.addColorStop(0, `hsl(${Math.sin(time)*360}, 80%, 35%)`);
+        bannerGrad.addColorStop(0.5, `hsl(${Math.cos(time)*360}, 80%, 35%)`);
+        bannerGrad.addColorStop(1, `hsl(${Math.sin(time*0.5)*360}, 80%, 35%)`);
+      } else if (state.bannerStyle === 'gold') {
+        bannerGrad.addColorStop(0, '#78350f');
+        bannerGrad.addColorStop(0.5, '#f59e0b');
+        bannerGrad.addColorStop(1, '#78350f');
+      } else if (state.bannerStyle === 'cyan') {
+        bannerGrad.addColorStop(0, '#0284c7');
+        bannerGrad.addColorStop(0.5, '#06b6d4');
+        bannerGrad.addColorStop(1, '#0284c7');
+      } else if (state.bannerStyle === 'purple') {
+        bannerGrad.addColorStop(0, '#581c87');
+        bannerGrad.addColorStop(0.5, '#a855f7');
+        bannerGrad.addColorStop(1, '#581c87');
+      } else {
+        bannerGrad.addColorStop(0, 'rgba(15, 23, 42, 0.95)');
+        bannerGrad.addColorStop(1, 'rgba(30, 41, 59, 0.85)');
+      }
+      
+      ctx.fillStyle = bannerGrad;
+      ctx.fillRect(bp.x - 170, bp.y - 26, 340 * (bp.scale || 1), 40 * (bp.scale || 1));
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bp.x - 170, bp.y - 26, 340 * (bp.scale || 1), 40 * (bp.scale || 1));
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `800 ${Math.floor(16 * (bp.scale || 1))}px ${state.font}`;
+      ctx.textAlign = 'center';
+      ctx.fillText(state.cardType, bp.x, bp.y);
+
+      ctx.restore();
+    }
+
+    function drawDetails() {
+      ctx.save();
+
+      let baseVal = parseInt(state.ovr) || 100;
+      let maxBoost = parseInt(state.boostVal);
+
+      let stepCount = maxBoost + 1; 
+      let animIndex = Math.floor((Date.now() / 900) % stepCount);
+
+      let currentVal = baseVal + animIndex;
+      let fontColor = '#ffffff'; 
+
+      if (animIndex === 1) {
+        fontColor = '#22c55e';
+      } else if (animIndex === 2) {
+        fontColor = '#a855f7';
+      } else if (animIndex >= 3) {
+        let rainbowHue = (Date.now() * 0.25) % 360;
+        fontColor = `hsl(${rainbowHue}, 100%, 65%)`;
+      }
+
+      let op = layers.ovr;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = fontColor;
+      ctx.font = `900 ${Math.floor(56 * op.scale)}px ${state.font}`;
+      ctx.fillText(currentVal, op.x, op.y);
+
+      ctx.fillStyle = state.textColor;
+      ctx.font = `800 ${Math.floor(22 * op.scale)}px ${state.font}`;
+      ctx.fillText(state.pos, op.x + 2, op.y + Math.floor(30 * op.scale));
+
+      let sp = layers.stars;
+      let starStr = '★'.repeat(state.stars);
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = `${Math.floor(18 * sp.scale)}px Montserrat`;
+      ctx.fillText(starStr, sp.x, sp.y);
+
+      if (maxBoost > 0) {
+        let bpos = layers.booster;
+        for (let i = 0; i < maxBoost; i++) {
+          let bx = bpos.x + (i * 26 * bpos.scale);
+          let by = bpos.y;
+
+          ctx.beginPath();
+          ctx.moveTo(bx, by - (12 * bpos.scale));
+          ctx.lineTo(bx + (10 * bpos.scale), by);
+          ctx.lineTo(bx, by + (12 * bpos.scale));
+          ctx.lineTo(bx - (10 * bpos.scale), by);
+          ctx.closePath();
+
+          let bGrad = ctx.createLinearGradient(bx - 10, by - 12, bx + 10, by + 12);
+          bGrad.addColorStop(0, '#ef4444');
+          bGrad.addColorStop(1, '#7f1d1d');
+          ctx.fillStyle = bGrad;
+          ctx.fill();
+          ctx.strokeStyle = '#ffea00';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `900 ${Math.floor(9 * bpos.scale)}px Montserrat`;
+          ctx.textAlign = 'center';
+          ctx.fillText(`+${i+1}`, bx, by + 3);
+        }
+      }
+
+      let np = layers.name;
+      let nameGrad = ctx.createLinearGradient(np.x - 210, 0, np.x + 210, 0);
+      nameGrad.addColorStop(0, 'rgba(15, 23, 42, 0.9)');
+      nameGrad.addColorStop(0.5, 'rgba(30, 41, 59, 0.95)');
+      nameGrad.addColorStop(1, 'rgba(15, 23, 42, 0.9)');
+      ctx.fillStyle = nameGrad;
+      ctx.fillRect(np.x - 210, np.y - 33, 420 * np.scale, 50 * np.scale);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = state.textColor;
+      ctx.font = `900 ${Math.floor(24 * np.scale)}px ${state.font}`;
+      ctx.fillText(state.name, np.x, np.y);
+
+      if (state.showStats) {
+        let stp = layers.stats;
+        let labels = ['PAS', 'ŞUT', 'DRİ', 'HIZ', 'DEF', 'FİZ'];
+        ctx.font = `700 ${Math.floor(13 * stp.scale)}px ${state.font}`;
+        
+        for(let i=0; i<6; i++) {
+          let x = stp.x + (i % 3) * (135 * stp.scale);
+          let y = stp.y + Math.floor(i / 3) * (35 * stp.scale);
+
+          ctx.fillStyle = '#94a3b8';
+          ctx.textAlign = 'left';
+          ctx.fillText(labels[i], x, y);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'right';
+          ctx.fillText(state.stats[i] || '90', x + (100 * stp.scale), y);
+        }
+      }
+
+      let cp = layers.club;
+      let fp = layers.flag;
+
+      if (clubImg && clubImg.complete) ctx.drawImage(clubImg, cp.x, cp.y, 45 * cp.scale, 45 * cp.scale);
+      if (flagImg && flagImg.complete) ctx.drawImage(flagImg, fp.x, fp.y, 45 * fp.scale, 30 * fp.scale);
+
+      ctx.restore();
+    }
+
+    function drawEffects() {
+      if (state.effect === 'none') return;
+
+      ctx.save();
+      let time = Date.now() * 0.002;
+
+      if (state.effect === 'round_stars') {
+        particles.forEach(p => {
+          ctx.fillStyle = `hsl(${p.hue}, 100%, 75%)`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          p.y += p.vy;
+          p.x += Math.sin(p.y * 0.04);
+          if (p.y > canvas.height) p.y = -10;
+        });
+      } else if (state.effect === 'rgb_starburst') {
+        particles.forEach(p => {
+          p.hue = (p.hue + 2) % 360;
+          ctx.fillStyle = `hsl(${p.hue}, 100%, 60%)`;
+          ctx.font = `${Math.floor(p.size * 3)}px Montserrat`;
+          ctx.fillText('★', p.x, p.y);
+
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.y > canvas.height || p.x > canvas.width || p.x < 0) {
+            p.x = canvas.width / 2;
+            p.y = canvas.height / 2;
+            p.vx = (Math.random() - 0.5) * 6;
+            p.vy = (Math.random() - 0.5) * 6;
+          }
+        });
+      } else if (state.effect === 'rgb_scan') {
+        let scanY = (Math.sin(time * 2) * 0.5 + 0.5) * canvas.height;
+        let grad = ctx.createLinearGradient(0, scanY - 20, 0, scanY + 20);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.5, `hsl(${(time * 100) % 360}, 100%, 50%)`);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, scanY - 20, canvas.width, 40);
+      } else if (state.effect === 'sakura') {
+        ctx.fillStyle = 'rgba(255, 182, 193, 0.85)';
+        particles.forEach(p => {
+          ctx.beginPath();
+          ctx.ellipse(p.x, p.y, p.size, p.size / 2, p.angle, 0, Math.PI * 2);
+          ctx.fill();
+          p.y += p.vy;
+          p.x += Math.sin(p.y * 0.05);
+          p.angle += 0.02;
+          if (p.y > canvas.height) p.y = -10;
+        });
+      } else if (state.effect === 'matrix') {
+        ctx.fillStyle = '#00ff66';
+        ctx.font = '14px monospace';
+        particles.forEach(p => {
+          ctx.fillText(p.char, p.x, p.y);
+          p.y += p.vy * 2;
+          if (p.y > canvas.height) p.y = -10;
+        });
+      } else if (state.effect === 'stars') {
+        ctx.fillStyle = '#ffffff';
+        particles.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * 0.7, 0, Math.PI * 2);
+          ctx.fill();
+          p.y += p.vy * 2;
+          if (p.y > canvas.height) p.y = -10;
+        });
+      } else if (state.effect === 'lightning') {
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
+        if (Math.random() > 0.4) {
+          ctx.beginPath();
+          let startX = Math.random() * canvas.width;
+          ctx.moveTo(startX, 0);
+          ctx.lineTo(startX + (Math.random() - 0.5) * 80, canvas.height / 2);
+          ctx.lineTo(startX + (Math.random() - 0.5) * 80, canvas.height);
+          ctx.stroke();
+        }
+      } else if (state.effect === 'fire') {
+        particles.forEach(p => {
+          ctx.fillStyle = `rgba(255, ${Math.floor(Math.random() * 150)}, 0, 0.85)`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          p.y -= p.vy * 2;
+          if (p.y < 0) p.y = canvas.height + 10;
+        });
+      } else if (state.effect === 'gold') {
+        ctx.fillStyle = '#f59e0b';
+        particles.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          p.y += p.vy * 1.5;
+          if (p.y > canvas.height) p.y = -10;
+        });
+      } else if (state.effect === 'snow') {
+        ctx.fillStyle = '#ffffff';
+        particles.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * 0.8, 0, Math.PI * 2);
+          ctx.fill();
+          p.y += p.vy * 0.8;
+          p.x += Math.sin(p.y * 0.02);
+          if (p.y > canvas.height) p.y = -10;
+        });
+      } else if (state.effect === 'bubbles') {
+        particles.forEach(p => {
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * 1.2, 0, Math.PI * 2);
+          ctx.stroke();
+          p.y -= p.vy;
+          if (p.y < -10) p.y = canvas.height + 10;
+        });
+      }
+
+      ctx.restore();
+    }
+
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      isDragging = true;
+      let target = layers[activeLayerKey];
+      dragStart = { x: e.clientX - rect.left - target.x, y: e.clientY - rect.top - target.y };
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const rect = canvas.getBoundingClientRect();
+      let target = layers[activeLayerKey];
+      target.x = Math.round(e.clientX - rect.left - dragStart.x);
+      target.y = Math.round(e.clientY - rect.top - dragStart.y);
+
+      document.getElementById('layerX').value = target.x;
+      document.getElementById('layerY').value = target.y;
+    });
+
+    window.addEventListener('mouseup', () => isDragging = false);
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      let target = layers[activeLayerKey];
+      target.scale = (target.scale || 1) + (e.deltaY * -0.001);
+      target.scale = Math.min(Math.max(0.3, target.scale), 3);
+      document.getElementById('layerScale').value = target.scale.toFixed(2);
+    });
+
+    document.getElementById('selectCountryFlag').addEventListener('change', e => {
+      flagImg = new Image();
+      flagImg.crossOrigin = 'anonymous';
+      flagImg.src = `https://flagcdn.com/w80/${e.target.value}.png`;
+    });
+
+    function handleFile(inputId, callback) {
+      document.getElementById(inputId).addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = f => {
+            let img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => callback(img);
+            img.src = f.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    handleFile('filePlayer', img => playerImg = img);
+    handleFile('fileBg', img => bgImg = img);
+    handleFile('fileClub', img => clubImg = img);
+    handleFile('fileFlag', img => flagImg = img);
+
+    document.getElementById('toggleStats').addEventListener('change', e => {
+      state.showStats = e.target.checked;
+      document.getElementById('statsBox').style.display = e.target.checked ? 'grid' : 'none';
+    });
+
+    function showToast(text) {
+      const toast = document.getElementById('toastMsg');
+      toast.innerText = text;
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 3000);
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    }
+
+    document.getElementById('btnOpenExport').addEventListener('click', () => {
+      document.getElementById('exportModal').classList.add('active');
+    });
+
+    // PNG EXPORT
+    document.getElementById('btnDownloadPNG').addEventListener('click', () => {
+      canvas.toBlob(blob => {
+        if (blob) {
+          downloadBlob(blob, `${state.name}_LCard.png`);
+          showToast('🖼️ PNG Resmi İndirildi!');
+          document.getElementById('exportModal').classList.remove('active');
+        }
+      }, 'image/png');
+    });
+
+    // JPG EXPORT
+    document.getElementById('btnDownloadJPG').addEventListener('click', () => {
+      canvas.toBlob(blob => {
+        if (blob) {
+          downloadBlob(blob, `${state.name}_LCard.jpg`);
+          showToast('📸 JPG Resmi İndirildi!');
+          document.getElementById('exportModal').classList.remove('active');
+        }
+      }, 'image/jpeg', 0.95);
+    });
+
+    // CLIENT-SIDE GIF GENERATOR FOR GOOGLE SITES
+    document.getElementById('btnDownloadGIF').addEventListener('click', () => {
+      document.getElementById('exportModal').classList.remove('active');
+      const recBadge = document.getElementById('recBadge');
+      recBadge.style.display = 'block';
+
+      let frames = [];
+      let totalFrames = 20; // Captures full progression loop
+      let captured = 0;
+
+      let captureInterval = setInterval(() => {
+        frames.push(canvas.toDataURL('image/png'));
+        captured++;
+
+        if (captured >= totalFrames) {
+          clearInterval(captureInterval);
+
+          gifshot.createGIF({
+            images: frames,
+            gifWidth: 400,
+            gifHeight: 576,
+            interval: 0.12,
+            numWorkers: 2
+          }, function (obj) {
+            recBadge.style.display = 'none';
+            if (!obj.error) {
+              let animatedImage = obj.image;
+              fetch(animatedImage)
+                .then(res => res.blob())
+                .then(blob => {
+                  downloadBlob(blob, `${state.name}_LCard_GoogleSites.gif`);
+                  showToast('🎬 GIF Başarıyla Oluşturuldu ve İndirildi!');
+                });
+            } else {
+              showToast('❌ GIF Oluşturma Hatası!');
+            }
+          });
+        }
+      }, 120);
+    });
+
+    // WEBM VIDEO RECORDING
+    document.getElementById('btnDownloadWEBM').addEventListener('click', () => {
+      document.getElementById('exportModal').classList.remove('active');
+      const recBadge = document.getElementById('recBadge');
+      recBadge.innerText = '🔴 WEBM VİDEO KAYDI ALINIYOR...';
+      recBadge.style.display = 'block';
+
+      try {
+        const stream = canvas.captureStream(60);
+        let options = { mimeType: 'video/webm' };
+        const recorder = new MediaRecorder(stream, options);
+        const chunks = [];
+
+        recorder.ondataavailable = e => {
+          if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        recorder.onstop = () => {
+          recBadge.style.display = 'none';
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          downloadBlob(blob, `${state.name}_LCard_Animation.webm`);
+          showToast('📹 WebM Videosu İndirildi!');
+        };
+
+        recorder.start();
+        setTimeout(() => {
+          if (recorder.state === 'recording') recorder.stop();
+        }, 4000);
+      } catch (err) {
+        recBadge.style.display = 'none';
+        showToast('❌ Video kaydı desteklenmiyor!');
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
+```
+
+### Google Sites'a Ekleme Adımları:
+1. Uygulamadaki **"İNDİRME / AKTARMA SEÇENEKLERİ"** butonuna basın.
+2. En üstteki **"🎬 Animasyonlu GIF İndir (Google Sites için Tam Uyumlu!)"** seçeneğini tıklayın.
+3. Birkaç saniye içinde `.gif` dosyanız otomatik olarak bilgisayarınıza inecektir.
+4. Google Sites panelinize gidin: **Ekle (Insert) ➔ Görseller (Images) ➔ Yükle (Upload)** adımlarını takip ederek `.gif` dosyanızı yükleyin. Kartınız durmaksızın animasyonlu şekilde sitenizde görünecektir.
